@@ -1,6 +1,6 @@
 name := "scala-parsers"
 
-version := "0.2.1"
+organization in Global := "oncue.ermine"
 
 scalaVersion := "2.11.2"
 
@@ -12,10 +12,6 @@ licenses += ("BSD Simplified", url("https://github.com/ermine-language/ermine-pa
 
 homepage := Some(url("https://github.com/ermine-language/ermine-parser"))
 
-bintraySettings
-
-bintray.Keys.bintrayOrganization in bintray.Keys.bintray := Some("ermine")
-
 publishMavenStyle := true
 
 scalacOptions ++=
@@ -24,7 +20,7 @@ scalacOptions ++=
       "-language:implicitConversions", "-language:higherKinds",
       "-language:existentials", "-language:postfixOps")
 
-resolvers += bintray.Opts.resolver.repo("non", "maven") // for kind-projector
+resolvers += "bintray/non" at "http://dl.bintray.com/non/maven"
 
 addCompilerPlugin("org.spire-math" %% "kind-projector" % "0.5.2")
 
