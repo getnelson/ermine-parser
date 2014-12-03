@@ -1,3 +1,4 @@
 /.lib/
 target/
 .ermine_history
+.ivy2/

@@ -1,5 +1,7 @@
 name := "scala-parsers"
 
+version := "0.2.1-1"
+
 organization in Global := "oncue.ermine"
 
 scalaVersion := "2.11.2"
@@ -36,3 +38,13 @@ libraryDependencies ++= Seq(
 )
 
 initialCommands in console := "import scalaz._, Scalaz._; import scalaparsers._"
+
+publishTo <<= version.apply(v => {
+  val nexus = "http://nexus.svc.oncue.com/nexus/"
+  if (v.trim.endsWith("SNAPSHOT"))
+    Some("snapshots" at nexus + "content/repositories/snapshots")
+  else
+    Some("releases" at nexus + "content/repositories/thirdparty")
+ })
+
+credentials += Credentials(Path.userHome / ".ivy2" / ".credentials")
