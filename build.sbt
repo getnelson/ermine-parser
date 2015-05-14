@@ -1,12 +1,10 @@
 name := "scala-parsers"
 
-version := "0.2.1-2"
-
 organization in Global := "oncue.ermine"
 
-scalaVersion := "2.11.2"
+crossScalaVersions := Seq("2.11.6", "2.10.5")
 
-crossScalaVersions := Seq("2.11.2", "2.10.5")
+scalaVersion := crossScalaVersions.value.head
 
 description := "A Trifecta inspired parser in Scala."
 
