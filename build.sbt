@@ -1,12 +1,12 @@
 name := "scala-parsers"
 
-version := "0.2.1-1"
+version := "0.2.1-2"
 
 organization in Global := "oncue.ermine"
 
 scalaVersion := "2.11.2"
 
-crossScalaVersions := Seq("2.11.2", "2.10.4")
+crossScalaVersions := Seq("2.11.2", "2.10.5")
 
 description := "A Trifecta inspired parser in Scala."
 
@@ -30,7 +30,7 @@ parallelExecution := true
 
 javacOptions += "-Xlint"
 
-val scalazVersion = "7.1.0"
+val scalazVersion = "7.1.2"
 
 libraryDependencies ++= Seq(
   "org.scalaz" %% "scalaz-core" % scalazVersion,
