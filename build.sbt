@@ -1,4 +1,4 @@
-name := "scala-parsers"
+name := "ermine-parser"
 
 organization in Global := "oncue.ermine"
 
@@ -15,6 +15,10 @@ homepage := Some(url("https://github.com/oncue/ermine-parser"))
 bintraySettings
 
 bintray.Keys.bintrayOrganization in bintray.Keys.bintray := Some("oncue")
+
+bintray.Keys.repository in bintray.Keys.bintray := "releases"
+
+bintray.Keys.packageLabels in bintray.Keys.bintray := Seq("scala", "functional programming", "parser", "reasonable")
 
 publishMavenStyle := true
 
