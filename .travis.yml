@@ -1,12 +1,9 @@
 language: scala
 scala:
-  - 2.11.2
-  - 2.10.4
+  - 2.10.5
+  - 2.11.6
+jdk:
+  - oraclejdk7
+  - openjdk6
 
-notifications:
-  irc:
-    channels:
-      - "irc.freenode.org#ermine"
-    skip_join: true
-    template:
-      - "\x0313ermine-parser\x03/\x0306%{branch}\x03 \x0314%{commit}\x03 %{build_url} %{message}"
+script: sbt ++$TRAVIS_SCALA_VERSION +test

@@ -8,9 +8,13 @@ scalaVersion := crossScalaVersions.value.head
 
 description := "A Trifecta inspired parser in Scala."
 
-licenses += ("BSD Simplified", url("https://github.com/ermine-language/ermine-parser/blob/master/LICENSE"))
+licenses += ("BSD Simplified", url("https://github.com/oncue/ermine-parser/blob/master/LICENSE"))
 
-homepage := Some(url("https://github.com/ermine-language/ermine-parser"))
+homepage := Some(url("https://github.com/oncue/ermine-parser"))
+
+bintraySettings
+
+bintray.Keys.bintrayOrganization in bintray.Keys.bintray := Some("oncue")
 
 publishMavenStyle := true
 
@@ -20,7 +24,7 @@ scalacOptions ++=
       "-language:implicitConversions", "-language:higherKinds",
       "-language:existentials", "-language:postfixOps")
 
-resolvers += "bintray/non" at "http://dl.bintray.com/non/maven"
+resolvers += bintray.Opts.resolver.repo("non", "maven") // for kind-projector
 
 addCompilerPlugin("org.spire-math" %% "kind-projector" % "0.5.2")
 
@@ -36,13 +40,3 @@ libraryDependencies ++= Seq(
 )
 
 initialCommands in console := "import scalaz._, Scalaz._; import scalaparsers._"
-
-publishTo <<= version.apply(v => {
-  val nexus = "http://nexus.svc.oncue.com/nexus/"
-  if (v.trim.endsWith("SNAPSHOT"))
-    Some("snapshots" at nexus + "content/repositories/snapshots")
-  else
-    Some("releases" at nexus + "content/repositories/thirdparty")
- })
-
-credentials += Credentials(Path.userHome / ".ivy2" / ".credentials")
