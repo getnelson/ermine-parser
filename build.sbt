@@ -24,7 +24,7 @@ scalacOptions ++=
       "-language:implicitConversions", "-language:higherKinds",
       "-language:existentials", "-language:postfixOps")
 
-resolvers += bintray.Opts.resolver.repo("non", "maven") // for kind-projector
+resolvers += Resolver.bintrayRepo("non", "maven") // for kind-projector
 
 addCompilerPlugin("org.spire-math" %% "kind-projector" % "0.5.2")
 
