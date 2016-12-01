@@ -24,11 +24,9 @@ addCompilerPlugin("org.spire-math" %% "kind-projector" % "0.5.2")
 
 javacOptions += "-Xlint"
 
-val scalazVersion = "7.2.7"
-
 libraryDependencies ++= Seq(
-  "org.scalaz" %% "scalaz-core" % scalazVersion,
-  "org.scalaz" %% "scalaz-scalacheck-binding" % scalazVersion % "test"
+  "org.scalaz" %% "scalaz-core" % scalazVersion.value,
+  "org.scalaz" %% "scalaz-scalacheck-binding" % scalazVersion.value % "test"
 )
 
 initialCommands in console := "import scalaz._, Scalaz._; import scalaparsers._"

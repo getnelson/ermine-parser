@@ -1,11 +1,21 @@
 language: scala
 
-scala:
-  - 2.10.5
-  - 2.11.7
-
-jdk:
-  - oraclejdk8
+matrix:
+  include:
+    # scala 2.10
+    - jdk: oraclejdk8
+      scala: 2.10.5
+      env: SCALAZ_VERSION=7.1.9
+    - jdk: oraclejdk8
+      scala: 2.10.5
+      env: SCALAZ_VERSION=7.2.7
+    # scala 2.11
+    - jdk: oraclejdk8
+      scala: 2.11.8
+      env: SCALAZ_VERSION=7.1.9
+    - jdk: oraclejdk8
+      scala: 2.11.8
+      env: SCALAZ_VERSION=7.2.7
 
 branches:
   only:
