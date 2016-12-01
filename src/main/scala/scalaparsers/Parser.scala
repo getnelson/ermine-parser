@@ -136,7 +136,7 @@ abstract class Parser[S, +A] extends MonadicPlus[Parser[S,+?],A] { that =>
   def attempt(s: String): Parser[S,A] = attempt scope s
 
   def not = new Parser[S,Unit] {
-    def apply[A >: Unit](s: ParseState[S], vs: Supply) = that(s, vs).map {
+    def apply[X >: Unit](s: ParseState[S], vs: Supply) = that(s, vs).map {
       case Pure(a, _) => Fail(Some("unexpected" :+: text(a.toString)))
       case Commit(t, a, _)  => Err.report(s.loc, Some("unexpected" :+: text(a.toString)), List(), Set())
       case _                => Pure[Unit](())
@@ -153,7 +153,7 @@ abstract class Parser[S, +A] extends MonadicPlus[Parser[S,+?],A] { that =>
     }
   }
   def slice = new Parser[S,String] {
-    def apply[A >: String](s: ParseState[S], vs: Supply) = that(s, vs).map {
+    def apply[X >: String](s: ParseState[S], vs: Supply) = that(s, vs).map {
       case Pure(_, e)       => Pure("", e)
       case Commit(t, _, xs) => Commit(t, s.input.substring(s.offset, t.offset), xs)
          // s.rest.take(s.rest.length - t.rest.length), xs)

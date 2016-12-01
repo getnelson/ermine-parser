@@ -1,9 +1,44 @@
 language: scala
 scala:
   - 2.10.5
-  - 2.11.8
-jdk:
-  - oraclejdk7
-  - openjdk6
+  - 2.11.7
 
-script: sbt ++$TRAVIS_SCALA_VERSION +test
+jdk:
+  - oraclejdk8
+
+branches:
+  only:
+  - master
+
+before_script:
+  - "if [ $TRAVIS_PULL_REQUEST = 'false' ]; then git checkout -qf $TRAVIS_BRANCH; fi"
+
+script:
+  - |
+    if [ $TRAVIS_PULL_REQUEST = 'false' ]; then
+      if [ $RELEASE_ON_PUSH = 'false' ]; then
+        sbt ++$TRAVIS_SCALA_VERSION test coverageReport
+      else
+        sbt ++$TRAVIS_SCALA_VERSION 'release with-defaults'
+      fi
+    else
+      sbt ++$TRAVIS_SCALA_VERSION test coverageReport
+    fi
+  - find $HOME/.sbt -name "*.lock" | xargs rm
+  - find $HOME/.ivy2 -name "ivydata-*.properties" | xargs rm
+
+cache:
+  directories:
+    - $HOME/.ivy2/cache
+    - $HOME/.sbt/boot/scala-$TRAVIS_SCALA_VERSION
+
+after_success:
+  - find $HOME/.sbt -name "*.lock" | xargs rm
+  - find $HOME/.ivy2 -name "ivydata-*.properties" | xargs rm
+  # - "bash <(curl -s https://codecov.io/bash) -r verizon/ermine-parser -t $CODECOV_TOKEN"
+
+env:
+  global:
+    - secure: "Ay2SmgGcuIgXffcebP+pVqyD1ipB5aNywnoJ9shtRdY496YihiVphL0y9qiFF9UYzlp4vSvCDxrbkmmQr4ZIeL/3JsrQtuigLyWK6qLLmRA7NXNp/INAzMYiKMlv8sjDMJoeLwJF4LEvXRozUdQgqBpO41lL7+MVC36dlqyGrHc="
+    - secure: "SlKF+cmvv+pKKfJ4//qOl7T4AHkYfXj5pb4xL/gRz8OjBzcJOifJUlE9zFDgFx0bmlbaaTcoXHYV/RSgHQFP94tVXblw9wGTrn7rry+D5BpeilIs/QbBfSVgpg4uBB1YjdPpRfTYZ5eymdd0id8AYgpEnnM0BAvcwmRc9ksQ9Ko="
+    - secure: "QNRc0ptaRIfD4S1zdoWubbLjwIm6ETX1/+8yfx2sVUlxL0cQSYhfvZW+jp7ogjv9sZSussT1CU2CS8AeNZ4NbcSrdzTBLM7KMyRKyEqenP9q6nq9t7kFna1U72/p+PJIgdgMRv7CaHuOTHRdbm57hkYlF09nsvNl401YFDhcmTA="

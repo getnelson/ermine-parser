@@ -1,3 +1,5 @@
+# Ermine Parser
+
 [![image](https://travis-ci.org/oncue/ermine-parser.svg)](https://travis-ci.org/oncue/ermine-parser) [ ![Download](https://api.bintray.com/packages/oncue/releases/ermine-parser/images/download.svg) ](https://bintray.com/oncue/releases/ermine-parser/_latestVersion)
 
 A parser combinator library for Scala, based on the [Trifecta library for Haskell](http://hackage.haskell.org/package/trifecta).
