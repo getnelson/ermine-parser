@@ -2,7 +2,7 @@ name := "parser"
 
 organization in Global := "io.verizon.ermine"
 
-crossScalaVersions in Global := Seq("2.11.6", "2.10.5")
+crossScalaVersions in Global := Seq("2.12.1", "2.11.6", "2.10.5")
 
 scalaVersion in Global := crossScalaVersions.value.head
 
@@ -20,7 +20,7 @@ scalacOptions ++=
 
 resolvers += Resolver.bintrayRepo("non", "maven") // for kind-projector
 
-addCompilerPlugin("org.spire-math" %% "kind-projector" % "0.5.2")
+addCompilerPlugin("org.spire-math" %% "kind-projector" % "0.9.3")
 
 javacOptions += "-Xlint"
 
