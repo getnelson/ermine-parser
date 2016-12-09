@@ -5,14 +5,14 @@ matrix:
     # scala 2.10
     - jdk: oraclejdk8
       scala: 2.10.5
-      env: SCALAZ_VERSION=7.1.9
+      env: SCALAZ_VERSION=7.1.11
     - jdk: oraclejdk8
       scala: 2.10.5
       env: SCALAZ_VERSION=7.2.7
     # scala 2.11
     - jdk: oraclejdk8
       scala: 2.11.8
-      env: SCALAZ_VERSION=7.1.9
+      env: SCALAZ_VERSION=7.1.11
     - jdk: oraclejdk8
       scala: 2.11.8
       env: SCALAZ_VERSION=7.2.7
