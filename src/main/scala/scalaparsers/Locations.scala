@@ -89,7 +89,7 @@ object Pos {
     def order(p: Pos, q: Pos): Ordering = (p.fileName ?|? q.fileName) |+| (p.line ?|? q.line) |+| (p.column ?|? q.column)
   }
   
-  def spacing(n: Int)(): String = " " * n
+  def spacing(n: Int): () => String = () => " " * n
 }
 
 
