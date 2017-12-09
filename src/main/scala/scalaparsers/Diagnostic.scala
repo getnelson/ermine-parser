@@ -1,7 +1,7 @@
 package scalaparsers
 
-import scalaz._
-import scalaz.Scalaz._
+import cats.Monad
+import cats.implicits._
 
 abstract class Diagnostic[M[+_]] {
   /** Fail with a message at a given location. this may abort backtracking for | */

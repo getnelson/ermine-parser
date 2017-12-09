@@ -2,7 +2,7 @@ name := "parser"
 
 organization in Global := "io.verizon.ermine"
 
-crossScalaVersions in Global := Seq("2.12.4", "2.11.12", "2.10.7")
+crossScalaVersions in Global := Seq("2.12.4", "2.11.12", "2.10.6")
 
 scalaVersion in Global := crossScalaVersions.value.head
 
@@ -24,10 +24,11 @@ addCompilerPlugin("org.spire-math" %% "kind-projector" % "0.9.4")
 
 javacOptions += "-Xlint"
 
+val catsVersion = "1.0.0-RC1"
+
 libraryDependencies ++= Seq(
-  "org.typelevel" %% "cats-core" % "1.0.0-RC1",
-  "org.scalaz" %% "scalaz-core" % scalazVersion.value,
-  "org.scalaz" %% "scalaz-scalacheck-binding" % scalazVersion.value % "test"
+  "org.typelevel" %% "cats-core" % catsVersion,
+  "org.typelevel" %% "cats-free" % catsVersion
 )
 
-initialCommands in console := "import scalaz._, Scalaz._; import scalaparsers._"
+initialCommands in console := "import cats._; import cats.implicits._; import scalaparsers._"

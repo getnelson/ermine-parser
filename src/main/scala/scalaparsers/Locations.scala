@@ -1,8 +1,11 @@
 package scalaparsers
 
 import Document._
-import scalaz.{ Order, Ordering }
-import scalaz.Scalaz._
+import cats.Order
+import cats.kernel.Comparison.{EqualTo, GreaterThan, LessThan}
+import cats.implicits._
+
+import scalaparsers.CatsOrphans._
 
 /** A Loc is an abstract possibly built-in location
   *
@@ -30,14 +33,14 @@ object Loc {
     override def msg(s: String) = s + " (builtin)"
   }
 
-  def locOrder: Order[Loc] = Order.order((a, b) => (a, b) match {
-    case (`builtin`, `builtin`)     => Ordering.EQ
-    case (`builtin`, _)             => Ordering.LT
-    case (_, `builtin`)             => Ordering.GT
-    case (a: Pos, b: Pos)           => a ?|? b
-    case (Inferred(a), Inferred(b)) => a ?|? b
-    case (a: Pos, Inferred(b))      => (a ?|? b) |+| Ordering.LT
-    case (Inferred(a), b: Pos)      => (a ?|? b) |+| Ordering.GT
+  def locOrder: Order[Loc] = Order.from((a, b) => (a, b) match {
+    case (`builtin`, `builtin`)     => EqualTo.toInt
+    case (`builtin`, _)             => LessThan.toInt
+    case (_, `builtin`)             => GreaterThan.toInt
+    case (a: Pos, b: Pos)           => a compare b
+    case (Inferred(a), Inferred(b)) => a compare b
+    case (a: Pos, Inferred(b))      => ((a comparison b) |+| LessThan).toInt
+    case (Inferred(a), b: Pos)      => ((a comparison b) |+| GreaterThan).toInt
   })
 }
 
@@ -87,7 +90,8 @@ object Pos {
     Pos(fileName, current, 1, 1, current.length == contents.length)
   }
   implicit def posOrder: Order[Pos] = new Order[Pos] {
-    def order(p: Pos, q: Pos): Ordering = (p.fileName ?|? q.fileName) |+| (p.line ?|? q.line) |+| (p.column ?|? q.column)
+    def compare(p: Pos, q: Pos): Int =
+      ((p.fileName comparison q.fileName) |+| (p.line comparison q.line) |+| (p.column comparison q.column)).toInt
   }
 
   def spacing(n: Int): () => String = () => " " * n

@@ -2,8 +2,9 @@ package scalaparsers
 
 import java.io.Writer
 import java.io.StringWriter
-import scalaz._
-import scalaz.Scalaz._
+
+import cats.{Foldable, Semigroup}
+import cats.implicits._
 
 final case class Death(error: Document, base: Exception = null) extends Exception(error.toString, base)
 
@@ -187,9 +188,11 @@ object Document {
     if (rem == 1)     { writer write " " }
   }
 
-  def fold[F[_]: Foldable](f: (Document, => Document) => Document)(z: F[Document]): Document = {
-    implicit val S = Semigroup instance f
-    z.foldMap(some).getOrElse(empty)
+  def fold[F[_]: Foldable](f: (Document, Document) => Document)(z: F[Document]): Document = {
+    implicit val S = new Semigroup[Document] {
+      def combine(x: Document, y: Document): Document = f(x, y)
+    }
+    z.foldMap(d => Some(d): Option[Document]).getOrElse(empty)
   }
 
   def foldl[F[_]: Foldable](f: (Document, Document) => Document)(z: F[Document]): Document =

@@ -2,7 +2,8 @@ package scalaparsers
 
 import scalaparsers.Document.{ text, nest, oxford }
 import scala.collection.immutable.List
-import scalaz.Functor
+
+import cats.Functor
 
 sealed trait ParseResult[+S,+A] extends Functorial[ParseResult[S,+?], A] {
   def self = this

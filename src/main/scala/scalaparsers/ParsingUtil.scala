@@ -1,14 +1,15 @@
 package scalaparsers
 
-import Document.{ text }
-import scalaz._
-import scalaz.Scalaz._
 import scala.collection.immutable.List
+import Document.{ text }
 import Diagnostic._
-import Ordering._
-import scalaz.Ordering.{LT, GT, EQ}
 
 import java.util.TimeZone
+
+import cats.{Monad, StackSafeMonad}
+import cats.kernel.Comparison.{EqualTo, GreaterThan, LessThan}
+import cats.free.Free
+import cats.implicits._
 
 trait Parsing[S] {
 
@@ -16,7 +17,7 @@ trait Parsing[S] {
   type ParseState = scalaparsers.ParseState[S]
 
   def unit[A](a: A): Parser[A] = new Parser[A] {
-    def apply[B >: A](s: ParseState, vs: Supply) = Free.point(Pure(a))
+    def apply[B >: A](s: ParseState, vs: Supply) = Free.pure(Pure(a))
     override def map[B](f: A => B) = unit(f(a))
     override def flatMap[B](f: A => Parser[B]) = f(a)
   }
@@ -31,13 +32,17 @@ trait Parsing[S] {
     def empty = Parser((_:ParseState,_:Supply) => Fail(None, List(), Set()))
   }
 
-  implicit def parserMonad: Monad[Parser] = new Monad[Parser] {
-    def point[A](a: => A) = new Parser[A] {
-      def apply[B >: A](s: ParseState, vs: Supply) = Free.point(Pure(a))
+  implicit def parserMonad: Monad[Parser] = new StackSafeMonad[Parser] {
+    def flatMap[A, B](m: Parser[A])(f: A => Parser[B]) = m flatMap f
+
+    def pure[A](a: A) = new Parser[A] {
+      def apply[B >: A](s: ParseState, vs: Supply) = Free.pure(Pure(a))
       override def map[B](f : A => B) = pure(f(a))
     }
-    override def map[A,B](m: Parser[A])(f: A => B) = m map f
-    def bind[A,B](m: Parser[A])(f: A => Parser[B]) = m flatMap f
+
+
+
+    override def map[A, B](m: Parser[A])(f: A => B) = m map f
   }
 
   def get: Parser[ParseState] = Parser((s:ParseState, _:Supply) => Pure(s))
@@ -128,11 +133,12 @@ trait Parsing[S] {
   private def offside(spaced: Boolean) = get.flatMap(s => {
     val col = s.loc.column
     s.layoutStack match {
-      case IndentedLayout(n, _) :: xs => (col ?|? n) match {
-        case LT => modify(_.copy(layoutStack = xs, bol = true)) as VBrace // pop the layout stack, and we're at bol
-        case EQ => if (s.offset != s.input.length) setBol(false) as VSemi
-                   else unit(Other)
-        case GT => onside(spaced)
+      case IndentedLayout(n, _) :: xs => (col comparison n) match {
+        case LessThan => modify(_.copy(layoutStack = xs, bol = true)) as VBrace // pop the layout stack, and we're at bol
+        case EqualTo  =>
+          if (s.offset != s.input.length) setBol(false) as VSemi
+          else unit(Other)
+        case GreaterThan => onside(spaced)
       }
       case _ => onside(spaced)
     }
@@ -342,15 +348,15 @@ trait Parsing[S] {
 
     def shuntingYard[T](pre: Parser[Op[T]], inpost: Parser[Op[T]], operand: Parser[T]): Parser[T] = {
       def clear(l: Pos, p: Op[T], rators: List[Op[T]], rands: List[T]): Parser[T] = rators match {
-        case f::fs => p.prec ?|? f.prec match {
-          case LT => f(rands) flatMap { clear(l, p, fs, _) }
-          case EQ => (p.assoc, f.assoc) match {
+        case f::fs => p.prec comparison f.prec match {
+          case LessThan => f(rands) flatMap { clear(l, p, fs, _) }
+          case EqualTo  => (p.assoc, f.assoc) match {
             case (AssocL, AssocL) => f(rands) flatMap { clear(l, p, fs, _) }
             case (AssocR, AssocR) => postRator(l, p :: rators, rands)
             case _ => raise(f.loc, "error: ambiguous operator of precedence " + p.prec,
                        List(p.report("note: is incompatible with this operator (add parentheses)")))
           }
-          case GT => postRator(l, p :: rators, rands)
+          case GreaterThan => postRator(l, p :: rators, rands)
         }
         case Nil => postRator(l, List(p), rands)
       }
