@@ -20,7 +20,7 @@ scalacOptions ++=
 
 resolvers += Resolver.bintrayRepo("non", "maven") // for kind-projector
 
-addCompilerPlugin("org.spire-math" %% "kind-projector" % "0.9.4")
+addCompilerPlugin("org.spire-math" %% "kind-projector" % "0.9.5")
 
 javacOptions += "-Xlint"
 
