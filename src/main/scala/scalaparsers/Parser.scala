@@ -1,6 +1,5 @@
 package scalaparsers
 
-
 import scalaparsers.Document.text
 
 import scala.collection.immutable.List
@@ -12,7 +11,7 @@ import scalaz.Ordering._
   *
   * @author EAK
   */
-abstract class Parser[S, +A] extends MonadicPlus[Parser[S,+?],A] { that =>
+abstract class Parser[S, +A] extends MonadicPlus[Parser[S, +?], A] { that =>
   def self = that
   def apply[B >: A](s: ParseState[S], vs: Supply): Trampoline[ParseResult[S,B]]
   def run(s: ParseState[S], vs: Supply): Either[Err, (ParseState[S], A)] = apply(s,vs).run match {
@@ -22,7 +21,7 @@ abstract class Parser[S, +A] extends MonadicPlus[Parser[S,+?],A] { that =>
     case e: Err         => Left(e)
   }
 
-  // functorial
+  /** Functor */
   def map[B](f: A => B) = new Parser[S,B] {
     def apply[C >: B](s: ParseState[S], vs: Supply) = that(s, vs).map(_ map f)
   }
@@ -50,7 +49,7 @@ abstract class Parser[S, +A] extends MonadicPlus[Parser[S,+?],A] { that =>
     }
   }
 
-  // monadic
+  /** Monad */
   def flatMap[B](f: A => Parser[S,B]) = new Parser[S,B] {
     def apply[C >: B](s: ParseState[S], vs: Supply) = that(s, vs).flatMap {
       case r@Pure(a, e)  => f(a)(s, vs).map {
@@ -94,7 +93,7 @@ abstract class Parser[S, +A] extends MonadicPlus[Parser[S,+?],A] { that =>
     }
   }
 
-  // monadicplus
+  /** MonadPlus */
   def |[B >: A](other: => Parser[S,B]) = new Parser[S,B] {
 
     def apply[C >: B](s: ParseState[S], vs: Supply) = that(s, vs).flatMap {
@@ -123,7 +122,7 @@ abstract class Parser[S, +A] extends MonadicPlus[Parser[S,+?],A] { that =>
     }
   }
 
-  // allow backtracking to retry after a parser state change
+  /** Allow backtracking to retry after a parser state change */
   def attempt = new Parser[S,A] {
     def apply[B >: A](s: ParseState[S], vs: Supply) = that(s, vs).map {
       case e@Err(p,d,aux,stk) => Fail(None, List(e.pretty), Set()) // we can attach the current message, now!

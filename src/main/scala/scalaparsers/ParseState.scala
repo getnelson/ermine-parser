@@ -6,7 +6,6 @@ import scala.collection.immutable.List
   *
   * @author EAK
   */
-
 case class ParseState[S](
   loc:            Pos,
   input:          String,

@@ -5,27 +5,28 @@ import java.io.StringWriter
 import scalaz._
 import scalaz.Scalaz._
 
-case class Death(error: Document, base: Exception = null) extends Exception(error.toString, base)
+final case class Death(error: Document, base: Exception = null) extends Exception(error.toString, base)
 
 abstract class DocException(msg: String, val doc: Document) extends Exception(msg)
 
-case object DocNil extends Document
-case object DocNewline extends Document
-case class DocBreak(hard:Boolean = true) extends Document
+final case object DocNil extends Document
+
+final case object DocNewline extends Document
+
 class DocText(val txt: String) extends Document
+
 object DocText{
   def apply(txt:String):DocText = new DocText(if(txt == null) "(null)" else txt)
   def unapply(d: DocText) : Option[String] = Some(d.txt)
 }
 
-case class LazyDocText(txtFn: (() => String)) extends Document
-case class DocGroup(doc: Document) extends Document
-case class DocNest(indent: Int, doc: Document) extends Document
-case class DocCons(hd: Document, tl: Document) extends Document
-case class DocColumn(f: Int => Document) extends Document
-case class DocNesting(f: Int => Document) extends Document
-// case class DocUnion(f: Document, g: Document) extends Document
-
+final case class DocBreak(hard: Boolean = true) extends Document
+final case class LazyDocText(txtFn: () => String) extends Document
+final case class DocGroup(doc: Document) extends Document
+final case class DocNest(indent: Int, doc: Document) extends Document
+final case class DocCons(hd: Document, tl: Document) extends Document
+final case class DocColumn(f: Int => Document) extends Document
+final case class DocNesting(f: Int => Document) extends Document
 
 abstract class Document {
   import Document._
@@ -135,7 +136,7 @@ object Document {
 
   /** A document consisting of some text literal */
   implicit def text(s: String): Document = DocText(s)
-  
+
   def lazyText(textFn: (() => String)): Document = LazyDocText(textFn)
 
   /**
@@ -186,22 +187,22 @@ object Document {
     if (rem == 1)     { writer write " " }
   }
 
-  def fold[F[_]:Foldable](f: (Document, => Document) => Document)(z: F[Document]): Document = {
+  def fold[F[_]: Foldable](f: (Document, => Document) => Document)(z: F[Document]): Document = {
     implicit val S = Semigroup instance f
     z.foldMap(some).getOrElse(empty)
   }
 
-  def foldl[F[_]:Foldable](f: (Document, Document) => Document)(z: F[Document]): Document =
+  def foldl[F[_]: Foldable](f: (Document, Document) => Document)(z: F[Document]): Document =
     z.foldLeft(none[Document])((od, d) => od map (f(_, d)) orElse Some(d))
      .getOrElse(empty)
 
-  def fillSep[F[_]:Foldable](z: F[Document]): Document = fold(_ :/+: _)(z)    // fold (</>)
-  def fillSepl[F[_]:Foldable](z: F[Document]): Document = foldl((a,b) => b :: group(line) :: a)(z)    // fold (</>)
-  def hsep[F[_]:Foldable](z: F[Document]): Document = fold(_ :+: _)(z)       // fold (<+>)
-  def vsep[F[_]:Foldable](z: F[Document]): Document = fold(_ above _)(z)     // fold (<$>)
-  def vcat[F[_]:Foldable](z: F[Document]): Document = fold(_ :/: _)(z)       // fold (<$$>)
+  def fillSep[F[_]: Foldable](z: F[Document]): Document = fold(_ :/+: _)(z)    // fold (</>)
+  def fillSepl[F[_]: Foldable](z: F[Document]): Document = foldl((a,b) => b :: group(line) :: a)(z)    // fold (</>)
+  def hsep[F[_]: Foldable](z: F[Document]): Document = fold(_ :+: _)(z)       // fold (<+>)
+  def vsep[F[_]: Foldable](z: F[Document]): Document = fold(_ above _)(z)     // fold (<$>)
+  def vcat[F[_]: Foldable](z: F[Document]): Document = fold(_ :/: _)(z)       // fold (<$$>)
   def cat(xs: List[Document]) = group(vcat(xs))
-  def fillCat[F[_]:Foldable](z: F[Document]): Document = fold(_ :/+: _)(z)   // fold (<//>)
+  def fillCat[F[_]: Foldable](z: F[Document]): Document = fold(_ :/+: _)(z)   // fold (<//>)
 
   def softline = group(line)
   def softbreak = group(break)
