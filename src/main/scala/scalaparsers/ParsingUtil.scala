@@ -5,7 +5,6 @@ import scalaz._
 import scalaz.Scalaz._
 import scala.collection.immutable.List
 import Diagnostic._
-import java.lang.Character._
 import Ordering._
 import scalaz.Ordering.{LT, GT, EQ}
 
@@ -105,16 +104,7 @@ trait Parsing[S] {
     _ <- modify(s => s.copy(bol = b)).when(old != b) // avoid committing if we haven't changed it
   } yield ()
 
-  private def pushContext(ctx: LayoutContext[S]): Parser[Unit] = modify { s => s.copy(layoutStack = ctx :: s.layoutStack) }
-
-  private def popContext(msg: String, f: LayoutContext[S] => Boolean): Parser[Unit] = for {
-    u <- get
-    if !u.layoutStack.isEmpty
-    l <- loc
-    _ <- put(u.copy(layoutStack = u.layoutStack.tail))
-  } yield ()
-
-              // TODO: properly parse and check for operators that start with --
+  // TODO: properly parse and check for operators that start with --
   private def comment: Parser[Unit] = rawWord("--").attempt >> rawSatisfy(_ != '\n').skipMany >> (rawNewline | realEOF) >> unit(())
   private def blockComment: Parser[Boolean] = {
     def restComment(hadnl: Boolean): Parser[Boolean] =
@@ -296,7 +286,6 @@ trait Parsing[S] {
   def doubleLiteral: Parser[Double] = token(doubleLiteral_)
 
   def dateLiteral_ = {
-    val oneToNine = satisfy("123456789" contains (_:Char))
     for {
       y <- ch('@') >> nat_ << ch('/')
       m <- nat_.filter(1L to 12L contains) << ch('/')

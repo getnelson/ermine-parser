@@ -1,15 +1,12 @@
 package scalaparsers
 
 
-import scalaparsers.Document.{ text, fillSep }
+import scalaparsers.Document.text
 
 import scala.collection.immutable.List
-import scalaz.{ Monad }
 import scalaz.Scalaz._
-import scalaz.Free.{ suspend, return_, Trampoline }
+import scalaz.Free.{ return_, Trampoline }
 import scalaz.Ordering._
-
-import Supply._
 
 /** A parser with a nice error handling
   *
