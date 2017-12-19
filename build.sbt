@@ -2,7 +2,7 @@ name := "parser"
 
 organization in Global := "io.verizon.ermine"
 
-crossScalaVersions in Global := Seq("2.12.4", "2.11.12", "2.10.6")
+crossScalaVersions in Global := Seq("2.12.4", "2.11.12", "2.10.7")
 
 scalaVersion in Global := crossScalaVersions.value.head
 
