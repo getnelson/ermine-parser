@@ -5,8 +5,6 @@ import cats.Order
 import cats.kernel.Comparison.{EqualTo, GreaterThan, LessThan}
 import cats.implicits._
 
-import scalaparsers.CatsOrphans._
-
 /** A Loc is an abstract possibly built-in location
   *
   * @author EAK
@@ -39,8 +37,16 @@ object Loc {
     case (_, `builtin`)             => GreaterThan.toInt
     case (a: Pos, b: Pos)           => a compare b
     case (Inferred(a), Inferred(b)) => a compare b
-    case (a: Pos, Inferred(b))      => ((a comparison b) |+| LessThan).toInt
-    case (Inferred(a), b: Pos)      => ((a comparison b) |+| GreaterThan).toInt
+    case (a: Pos, Inferred(b))      =>
+      ((a comparison b) match {
+        case EqualTo => LessThan
+        case cmp     => cmp
+      }).toInt
+    case (Inferred(a), b: Pos)      =>
+      ((a comparison b) match {
+        case EqualTo => GreaterThan
+        case cmp     => cmp
+      }).toInt
   })
 }
 
@@ -89,10 +95,12 @@ object Pos {
     val current = contents.takeWhile(_ != '\n')
     Pos(fileName, current, 1, 1, current.length == contents.length)
   }
-  implicit def posOrder: Order[Pos] = new Order[Pos] {
-    def compare(p: Pos, q: Pos): Int =
-      ((p.fileName comparison q.fileName) |+| (p.line comparison q.line) |+| (p.column comparison q.column)).toInt
-  }
+  implicit val posOrder: Order[Pos] =
+    Order.whenEqualMonoid.combineAll(List(
+      Order.by(_.fileName),
+      Order.by(_.line),
+      Order.by(_.column)
+    ))
 
   def spacing(n: Int): () => String = () => " " * n
 }
