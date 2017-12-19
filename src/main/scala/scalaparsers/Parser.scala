@@ -1,21 +1,18 @@
 package scalaparsers
 
-
-import scalaparsers.Document.{ text, fillSep }
+import scalaparsers.Document.text
 
 import scala.collection.immutable.List
-import scalaz.{ Monad }
-import scalaz.Scalaz._
-import scalaz.Free.{ suspend, return_, Trampoline }
-import scalaz.Ordering._
 
-import Supply._
+import cats.kernel.Comparison.{EqualTo, GreaterThan, LessThan}
+import cats.free.{Free, Trampoline}
+import cats.implicits._
 
 /** A parser with a nice error handling
   *
   * @author EAK
   */
-abstract class Parser[S, +A] extends MonadicPlus[Parser[S,+?],A] { that =>
+abstract class Parser[S, +A] extends MonadicPlus[Parser[S, +?], A] { that =>
   def self = that
   def apply[B >: A](s: ParseState[S], vs: Supply): Trampoline[ParseResult[S,B]]
   def run(s: ParseState[S], vs: Supply): Either[Err, (ParseState[S], A)] = apply(s,vs).run match {
@@ -25,7 +22,7 @@ abstract class Parser[S, +A] extends MonadicPlus[Parser[S,+?],A] { that =>
     case e: Err         => Left(e)
   }
 
-  // functorial
+  /** Functor */
   def map[B](f: A => B) = new Parser[S,B] {
     def apply[C >: B](s: ParseState[S], vs: Supply) = that(s, vs).map(_ map f)
   }
@@ -53,7 +50,7 @@ abstract class Parser[S, +A] extends MonadicPlus[Parser[S,+?],A] { that =>
     }
   }
 
-  // monadic
+  /** Monad */
   def flatMap[B](f: A => Parser[S,B]) = new Parser[S,B] {
     def apply[C >: B](s: ParseState[S], vs: Supply) = that(s, vs).flatMap {
       case r@Pure(a, e)  => f(a)(s, vs).map {
@@ -66,7 +63,7 @@ abstract class Parser[S, +A] extends MonadicPlus[Parser[S,+?],A] { that =>
         case Fail(e, aux, ys) => Err.report(t.loc, e, aux, xs ++ ys)
         case r => r
       }
-      case r : ParseFailure => return_(r)
+      case r : ParseFailure => Free.pure(r)
     }
   }
 
@@ -86,18 +83,18 @@ abstract class Parser[S, +A] extends MonadicPlus[Parser[S,+?],A] { that =>
       }
       case e@Err(l,msg,aux,stk) => p(s, vs) map {
         case _ : Fail => e
-        case ep@Err(lp,msgp,auxp,stkp) => (l ?|? ep.loc) match {
-          case LT => ep
-          case EQ => e // Err(l, msg, aux ++ List(ep.pretty), stk)
-          case GT => e
+        case ep@Err(lp,msgp,auxp,stkp) => (l comparison ep.loc) match {
+          case LessThan    => ep
+          case EqualTo     => e
+          case GreaterThan => e
         }
         case r => r
       }
-      case r => return_(r)
+      case r => Free.pure(r)
     }
   }
 
-  // monadicplus
+  /** MonadPlus */
   def |[B >: A](other: => Parser[S,B]) = new Parser[S,B] {
 
     def apply[C >: B](s: ParseState[S], vs: Supply) = that(s, vs).flatMap {
@@ -106,7 +103,7 @@ abstract class Parser[S, +A] extends MonadicPlus[Parser[S,+?],A] { that =>
         case Pure(a, ep) => Pure(a, e ++ ep)
         case r => r
       }
-      case r => return_(r)
+      case r => Free.pure(r)
     }
   }
   def orElse[B >: A](b: => B) = new Parser[S,B] {
@@ -126,7 +123,7 @@ abstract class Parser[S, +A] extends MonadicPlus[Parser[S,+?],A] { that =>
     }
   }
 
-  // allow backtracking to retry after a parser state change
+  /** Allow backtracking to retry after a parser state change */
   def attempt = new Parser[S,A] {
     def apply[B >: A](s: ParseState[S], vs: Supply) = that(s, vs).map {
       case e@Err(p,d,aux,stk) => Fail(None, List(e.pretty), Set()) // we can attach the current message, now!
@@ -149,7 +146,7 @@ abstract class Parser[S, +A] extends MonadicPlus[Parser[S,+?],A] { that =>
         case Fail(ep, auxp, ys)  => Fail(ep orElse e, if (ep.isDefined) auxp else aux, xs ++ ys)
         case r => r
       }
-      case r => return_(r)
+      case r => Free.pure(r)
     }
   }
   def slice = new Parser[S,String] {
@@ -165,6 +162,6 @@ abstract class Parser[S, +A] extends MonadicPlus[Parser[S,+?],A] { that =>
 
 object Parser {
   def apply[A,S](f: (ParseState[S], Supply) => ParseResult[S,A]) = new Parser[S,A] {
-    def apply[B >: A](s: ParseState[S], vs: Supply) = return_(f(s, vs))
+    def apply[B >: A](s: ParseState[S], vs: Supply) = Free.pure(f(s, vs))
   }
 }
