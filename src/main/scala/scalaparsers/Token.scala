@@ -5,21 +5,20 @@ package scalaparsers
   * @author EAK
   */
 
-sealed abstract class Token
+sealed abstract class Token extends Product with Serializable
 
-case object VSemi extends Token {
+final case object VSemi extends Token {
   override def toString = "virtual semicolon"
 }
-case object VBrace extends Token {
+
+final case object VBrace extends Token {
   override def toString = "virtual right brace"
 }
-case object WhiteSpace extends Token {
+
+final case object WhiteSpace extends Token {
   override def toString = "white space"
 }
-case object Other extends Token {
+
+final case object Other extends Token {
   override def toString = "other"
 }
-/*
-case object EOF extends Token {
-  override def toString = "EOF"
-} */

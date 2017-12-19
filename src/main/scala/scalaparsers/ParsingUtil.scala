@@ -1,15 +1,15 @@
 package scalaparsers
 
-import Document.{ text }
-import scalaz._
-import scalaz.Scalaz._
 import scala.collection.immutable.List
+import Document.{ text }
 import Diagnostic._
-import java.lang.Character._
-import Ordering._
-import scalaz.Ordering.{LT, GT, EQ}
 
 import java.util.TimeZone
+
+import cats.{Monad, StackSafeMonad}
+import cats.kernel.Comparison.{EqualTo, GreaterThan, LessThan}
+import cats.free.Free
+import cats.implicits._
 
 trait Parsing[S] {
 
@@ -17,7 +17,7 @@ trait Parsing[S] {
   type ParseState = scalaparsers.ParseState[S]
 
   def unit[A](a: A): Parser[A] = new Parser[A] {
-    def apply[B >: A](s: ParseState, vs: Supply) = Free.point(Pure(a))
+    def apply[B >: A](s: ParseState, vs: Supply) = Free.pure(Pure(a))
     override def map[B](f: A => B) = unit(f(a))
     override def flatMap[B](f: A => Parser[B]) = f(a)
   }
@@ -32,13 +32,17 @@ trait Parsing[S] {
     def empty = Parser((_:ParseState,_:Supply) => Fail(None, List(), Set()))
   }
 
-  implicit def parserMonad: Monad[Parser] = new Monad[Parser] {
-    def point[A](a: => A) = new Parser[A] {
-      def apply[B >: A](s: ParseState, vs: Supply) = Free.point(Pure(a))
+  implicit def parserMonad: Monad[Parser] = new StackSafeMonad[Parser] {
+    def flatMap[A, B](m: Parser[A])(f: A => Parser[B]) = m flatMap f
+
+    def pure[A](a: A) = new Parser[A] {
+      def apply[B >: A](s: ParseState, vs: Supply) = Free.pure(Pure(a))
       override def map[B](f : A => B) = pure(f(a))
     }
-    override def map[A,B](m: Parser[A])(f: A => B) = m map f
-    def bind[A,B](m: Parser[A])(f: A => Parser[B]) = m flatMap f
+
+
+
+    override def map[A, B](m: Parser[A])(f: A => B) = m map f
   }
 
   def get: Parser[ParseState] = Parser((s:ParseState, _:Supply) => Pure(s))
@@ -105,16 +109,7 @@ trait Parsing[S] {
     _ <- modify(s => s.copy(bol = b)).when(old != b) // avoid committing if we haven't changed it
   } yield ()
 
-  private def pushContext(ctx: LayoutContext[S]): Parser[Unit] = modify { s => s.copy(layoutStack = ctx :: s.layoutStack) }
-
-  private def popContext(msg: String, f: LayoutContext[S] => Boolean): Parser[Unit] = for {
-    u <- get
-    if !u.layoutStack.isEmpty
-    l <- loc
-    _ <- put(u.copy(layoutStack = u.layoutStack.tail))
-  } yield ()
-
-              // TODO: properly parse and check for operators that start with --
+  // TODO: properly parse and check for operators that start with --
   private def comment: Parser[Unit] = rawWord("--").attempt >> rawSatisfy(_ != '\n').skipMany >> (rawNewline | realEOF) >> unit(())
   private def blockComment: Parser[Boolean] = {
     def restComment(hadnl: Boolean): Parser[Boolean] =
@@ -138,11 +133,12 @@ trait Parsing[S] {
   private def offside(spaced: Boolean) = get.flatMap(s => {
     val col = s.loc.column
     s.layoutStack match {
-      case IndentedLayout(n, _) :: xs => (col ?|? n) match {
-        case LT => modify(_.copy(layoutStack = xs, bol = true)) as VBrace // pop the layout stack, and we're at bol
-        case EQ => if (s.offset != s.input.length) setBol(false) as VSemi
-                   else unit(Other)
-        case GT => onside(spaced)
+      case IndentedLayout(n, _) :: xs => (col comparison n) match {
+        case LessThan => modify(_.copy(layoutStack = xs, bol = true)) as VBrace // pop the layout stack, and we're at bol
+        case EqualTo  =>
+          if (s.offset != s.input.length) setBol(false) as VSemi
+          else unit(Other)
+        case GreaterThan => onside(spaced)
       }
       case _ => onside(spaced)
     }
@@ -296,7 +292,6 @@ trait Parsing[S] {
   def doubleLiteral: Parser[Double] = token(doubleLiteral_)
 
   def dateLiteral_ = {
-    val oneToNine = satisfy("123456789" contains (_:Char))
     for {
       y <- ch('@') >> nat_ << ch('/')
       m <- nat_.filter(1L to 12L contains) << ch('/')
@@ -323,37 +318,6 @@ trait Parsing[S] {
   val opChars = ":!#$%&*+./<=>?@\\^|-~'`".sorted.toArray[Char]
   def existsIn(chs: Array[Char], c: Char): Boolean =
     java.util.Arrays.binarySearch(chs, c) >= 0
-//  def isOpChar(c: Char) =
-//    existsIn(opChars, c) ||
-//    (!existsIn(nonopChars, c) && punctClasses(c.getType.asInstanceOf[Byte]))
-  /*
-  def opChar: Parser[Char] = satisfy(isOpChar(_))
-  def keyword(s: String): Parser[Unit] = token((letter >> identTail).slice.filter(_ == s).skip.attempt(s))
-  def rawKeyword(s: String): Parser[Unit] = (stillOnside >> rawLetter >> rawIdentTail).slice.filter(_ == s).skip.attempt("raw " + s)
-
-  private val punctClasses = Set(
-    START_PUNCTUATION, END_PUNCTUATION, DASH_PUNCTUATION,
-    INITIAL_QUOTE_PUNCTUATION, FINAL_QUOTE_PUNCTUATION,
-    MATH_SYMBOL, CURRENCY_SYMBOL, MODIFIER_SYMBOL, OTHER_SYMBOL
-  )
-
-  /** token parser that consumes a key operator */
-  def keyOp(s: String): Parser[Unit] = token((opChar.skipSome).slice.filter(_ == s).skip.attempt("'" + s + "'"))
-
-  // key operators which cannot be used by users
-  val keyOps = Set(":", "=","..","->","=>","~","<-") // "!" handled specially
-  val star   = keyOp("*") // NB: we permit star to be bound by users, so it isn't in keyOps
-
-  val doubleArrow = keyOp("=>")
-  val ellipsis    = keyOp("..")
-  val colon       = keyOp(":")
-  val dot         = keyOp(".")
-  val backslash   = keyOp("\\")
-  val bang        = keyOp("!")
-  val comma       = token(ch(',')) as ","
-  def prec: Parser[Int] = nat.filter(_ <= 10L).map(_.toInt) scope "precedence between 0 and 10"
-  def underscore: Parser[Unit] = token((ch('_') >> notFollowedBy(tailChar)) attempt "underscore")
-  */
 
   sealed trait Op[T] extends Located {
     def loc: Pos
@@ -384,15 +348,15 @@ trait Parsing[S] {
 
     def shuntingYard[T](pre: Parser[Op[T]], inpost: Parser[Op[T]], operand: Parser[T]): Parser[T] = {
       def clear(l: Pos, p: Op[T], rators: List[Op[T]], rands: List[T]): Parser[T] = rators match {
-        case f::fs => p.prec ?|? f.prec match {
-          case LT => f(rands) flatMap { clear(l, p, fs, _) }
-          case EQ => (p.assoc, f.assoc) match {
+        case f::fs => p.prec comparison f.prec match {
+          case LessThan => f(rands) flatMap { clear(l, p, fs, _) }
+          case EqualTo  => (p.assoc, f.assoc) match {
             case (AssocL, AssocL) => f(rands) flatMap { clear(l, p, fs, _) }
             case (AssocR, AssocR) => postRator(l, p :: rators, rands)
             case _ => raise(f.loc, "error: ambiguous operator of precedence " + p.prec,
                        List(p.report("note: is incompatible with this operator (add parentheses)")))
           }
-          case GT => postRator(l, p :: rators, rands)
+          case GreaterThan => postRator(l, p :: rators, rands)
         }
         case Nil => postRator(l, List(p), rands)
       }
